@@ -1,0 +1,7 @@
+SELECT 
+    `extension` AS `homePhone%` ,
+    SUBSTRING_INDEX(SUBSTRING_INDEX(`destination`, ',', 2), ',', -1) AS `telephoneNumber%`
+FROM 
+    incoming
+WHERE 
+    `destination` LIKE 'from-did-direct,%';
