@@ -1,12 +1,15 @@
 SELECT 
-    t.extension  AS `homePhone%`,
+    t.extension AS `homePhone%`,
     SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) AS `telephoneNumber%`,
     d.description AS `Username`
 FROM 
     incoming AS t
-JOIN 
+LEFT JOIN 
     devices AS d
 ON 
     SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) = d.id
 WHERE 
-    t.destination LIKE 'from-did-direct,%';
+    t.destination LIKE 'from-did-direct,%'
+    OR t.destination LIKE 'ext-queues,%'
+    OR t.destination LIKE 'ext-group,%'
+    OR t.destination LIKE 'ivr%,%';
