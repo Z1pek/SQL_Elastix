@@ -1,10 +1,11 @@
 SELECT 
     t.extension AS `homePhone%`,
     SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) AS `telephoneNumber%`,
-    d.description AS `Username`
+    d.description AS `Extension Name`,
+    t.description AS `Inbound Description`
 FROM 
     incoming AS t
-LEFT JOIN 
+RIGHT JOIN 
     devices AS d
 ON 
     SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) = d.id
