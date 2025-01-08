@@ -1,0 +1,168 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace OfflinePhoneBookApp_GUI
+{
+    public partial class MainForm : Form
+    {
+        // File paths
+        private string fullPoolFile = @"C:\Users\f.poloncarz\Documents\Centrala\PhoneBookProject\full_pool.csv";       // Full pool of numbers
+        private string sqlPhoneBookFile = @"C:\Users\f.poloncarz\Documents\Centrala\PhoneBookProject\sqlphonebook.csv"; // Data from SQL query
+        private string outputFile = @"C:\Users\f.poloncarz\Documents\Centrala\PhoneBookProject\used_numbers_with_details.csv";
+
+        // Lists to hold data
+        private List<string> fullPool = new List<string>();
+        private List<PhoneRecord> phoneBookRecords = new List<PhoneRecord>();
+        private List<PhoneRecord> usedNumbers = new List<PhoneRecord>();
+        private List<string> unusedNumbers = new List<string>();
+
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        // Class to store phone record details
+        public class PhoneRecord
+        {
+            public string HomePhone { get; set; }
+            public string TelephoneNumber { get; set; }
+            public string ExtensionName { get; set; }
+            public string HRID { get; set; }
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            // Load the data when the form is loaded
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            fullPool = ReadCsvFile(fullPoolFile);
+            phoneBookRecords = ReadSqlPhoneBook(sqlPhoneBookFile);
+
+            // Match numbers
+            usedNumbers = phoneBookRecords.Where(r => !string.IsNullOrEmpty(r.TelephoneNumber)).ToList();
+            var usedNumberList = usedNumbers.Select(r => r.TelephoneNumber).ToList();
+            unusedNumbers = fullPool.Except(usedNumberList).ToList();
+
+            // Display used numbers in the DataGridView
+            dataGridViewUsedNumbers.DataSource = usedNumbers.Select(r => new
+            {
+                r.TelephoneNumber,
+                r.HomePhone,
+                r.ExtensionName,
+                r.HRID
+            }).ToList();
+
+            // Display unused numbers in the ListBox
+            listBoxUnusedNumbers.DataSource = unusedNumbers;
+        }
+
+        // Function to read full pool of numbers from a CSV file
+        static List<string> ReadCsvFile(string filePath)
+        {
+            List<string> numbers = new List<string>();
+            try
+            {
+                using (StreamReader reader = new StreamReader(filePath))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        numbers.Add(line.Trim());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error reading file {filePath}: {ex.Message}");
+            }
+            return numbers;
+        }
+
+        // Function to read phone book records from sqlphonebook.csv
+        static List<PhoneRecord> ReadSqlPhoneBook(string filePath)
+        {
+            List<PhoneRecord> records = new List<PhoneRecord>();
+            try
+            {
+                using (StreamReader reader = new StreamReader(filePath))
+                {
+                    string line;
+                    // Skip the header row
+                    reader.ReadLine();
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        string[] fields = line.Split(',');
+
+                        // Ensure the fields align with the expected columns
+                        if (fields.Length >= 4)
+                        {
+                            records.Add(new PhoneRecord
+                            {
+                                HomePhone = fields[0].Trim().Trim('"'),
+                                TelephoneNumber = fields[1].Trim().Trim('"'),
+                                ExtensionName = fields[2].Trim().Trim('"'),
+                                HRID = fields[3].Trim().Trim('"')
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error reading file {filePath}: {ex.Message}");
+            }
+            return records;
+        }
+
+        // Export used numbers with details to CSV file
+        private void ExportUsedNumbers(string filePath, List<PhoneRecord> records)
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    // Write the header
+                    writer.WriteLine("HomePhone,TelephoneNumber,ExtensionName,HRID");
+
+                    // Write each record
+                    foreach (var record in records)
+                    {
+                        writer.WriteLine($"\"{record.HomePhone}\",\"{record.TelephoneNumber}\",\"{record.ExtensionName}\",\"{record.HRID}\"");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error writing to file {filePath}: {ex.Message}");
+            }
+        }
+
+        // Button click event to export used numbers with details to CSV
+        private void btnExport_Click(object sender, EventArgs e)
+        {
+            ExportUsedNumbers(outputFile, usedNumbers);
+            MessageBox.Show($"Used numbers with details exported to {outputFile}");
+        }
+
+        // Button click event to view used numbers
+        private void btnViewUsedNumbers_Click(object sender, EventArgs e)
+        {
+            dataGridViewUsedNumbers.Visible = true;
+            listBoxUnusedNumbers.Visible = false;
+        }
+
+        // Button click event to view unused numbers
+        private void btnViewUnusedNumbers_Click(object sender, EventArgs e)
+        {
+            listBoxUnusedNumbers.Visible = true;
+            dataGridViewUsedNumbers.Visible = false;
+        }
+    }
+}
