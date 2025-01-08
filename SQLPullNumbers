@@ -1,13 +1,32 @@
 SELECT 
+    d.user AS `SIP_ID`,
+    d.description AS `SIP_DESCRIPTION`,
     t.extension AS `homePhone%`,
-    SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) AS `telephoneNumber%`,
-    d.description AS `Extension Name`,
-    t.description AS `Inbound Description`
+	d.emergency_cid AS `HRID`,
+    CASE 
+        WHEN t.destination IS NOT NULL AND t.destination LIKE '%,%,%' THEN 
+            SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1)
+        ELSE 
+            NULL
+    END AS `telephoneNumber%`,
+    t.description AS `Inbound_Description`,
+    CASE 
+        WHEN t.destination IS NULL OR t.destination NOT LIKE '%,%,%' THEN 'No Match - NON-EXISTING Destination'
+        ELSE 'Match Found'
+    END AS `Match_Status`
 FROM 
-    incoming AS t
-RIGHT JOIN 
     devices AS d
+LEFT JOIN 
+    incoming AS t
 ON 
-    SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1) = d.id
+    d.user = CASE 
+                WHEN t.destination IS NOT NULL AND t.destination LIKE '%,%,%' THEN 
+                    SUBSTRING_INDEX(SUBSTRING_INDEX(t.destination, ',', 2), ',', -1)
+                ELSE 
+                    NULL
+             END
 WHERE 
-    t.destination LIKE '%,%,%';
+    t.destination IS NULL 
+    OR t.destination LIKE '%,%,%'
+ORDER BY 
+    CAST(d.user AS UNSIGNED) ASC;
